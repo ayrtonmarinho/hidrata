@@ -1,0 +1,9 @@
+{
+  "appId": "com.ayrton.hidrata",
+  "appName": "Hidrata",
+  "webDir": "www",
+  "android": { "backgroundColor": "#0b1118" },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_drop", "iconColor": "#4cc3ff" }
+  }
+}

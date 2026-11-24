@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1118">
+<title>Hidrata</title>
+<script src="config.js"></script>
+<style>
+@font-face{font-family:Archivo;font-weight:500;font-display:swap;src:url(fonts/archivo-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:Archivo;font-weight:700;font-display:swap;src:url(fonts/archivo-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:Archivo;font-weight:800;font-display:swap;src:url(fonts/archivo-latin-800-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:700;font-display:swap;src:url(fonts/jetbrains-mono-latin-700-normal.woff2) format("woff2")}
+:root{
+  --bg:#0b1118; --surface:#121a24; --surface2:#18222f; --line:#233040;
+  --text:#e9f0f7; --muted:#8597ab; --accent:#4cc3ff; --accent2:#2a86e0; --ink:#04131f;
+  --ok:#5be3a2; --warn:#ffb547;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:Archivo,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 90px);max-width:520px;margin:0 auto}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input,select{font:inherit;color:var(--text)}
+.mono{font-family:"JetBrains Mono",monospace}
+header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
+h1 span{color:var(--accent)}
+.date{color:var(--muted);font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;margin-bottom:12px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+/* nav */
+nav{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);padding:14px 16px calc(env(safe-area-inset-bottom) + 12px);z-index:30}
+nav .in{max-width:520px;margin:0 auto;display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:5px}
+.tab{flex:1;padding:11px 0;border-radius:10px;font-weight:700;font-size:14px;color:var(--muted)}
+.tab.active{background:var(--accent);color:var(--ink)}
+.view{display:none}.view.active{display:block}
+/* ring */
+.ringwrap{display:flex;align-items:center;gap:18px}
+.ring{position:relative;width:150px;height:150px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .v{font-family:"JetBrains Mono",monospace;font-size:26px;font-weight:700}
+.ring .g{color:var(--muted);font-size:12px;margin-top:2px}
+.stat{font-size:14px;line-height:1.5}
+.stat b{font-size:22px;display:block;font-weight:800}
+.pill{display:inline-block;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;margin-top:8px}
+.pill.ok{background:rgba(91,227,162,.14);color:var(--ok)}
+.pill.late{background:rgba(255,181,71,.14);color:var(--warn)}
+.pill.done{background:rgba(76,195,255,.16);color:var(--accent)}
+/* buttons */
+.big{width:100%;padding:16px;border-radius:14px;background:var(--accent);color:var(--ink);font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;gap:8px}
+.big:active{transform:scale(.98)}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.quick button{padding:12px 0;border-radius:11px;background:var(--surface2);border:1px solid var(--line);font-weight:700;font-size:14px}
+.quick button:active{background:var(--line)}
+.btn{padding:11px 16px;border-radius:11px;background:var(--accent);color:var(--ink);font-weight:700;font-size:14px}
+.btn.ghost{background:var(--surface2);color:var(--text);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:#ff7b7b;border:1px solid #4a2630}
+/* dose list */
+.doses{display:flex;flex-direction:column;gap:6px}
+.dose{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;background:var(--surface2);border:1px solid transparent}
+.dose .t{font-family:"JetBrains Mono",monospace;font-weight:700;width:52px}
+.dose .a{flex:1;font-size:14px}
+.dose .s{font-size:12px;font-weight:700;color:var(--muted)}
+.dose.done{opacity:.55}.dose.done .s{color:var(--ok)}
+.dose.now{border-color:var(--accent)}.dose.now .s{color:var(--accent)}
+.dose.late .s{color:var(--warn)}
+.log{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:99px;background:var(--surface2);border:1px solid var(--line);font-size:13px}
+.chip button{color:var(--muted);font-size:15px;line-height:1}
+/* toggle */
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sw{position:relative;width:46px;height:28px;flex:none}
+.sw input{opacity:0;width:0;height:0}
+.sw i{position:absolute;inset:0;background:var(--line);border-radius:99px;transition:.2s}
+.sw i:before{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
+.sw input:checked+i{background:var(--accent)}
+.sw input:checked+i:before{transform:translateX(18px)}
+/* form */
+.form{display:grid;gap:12px}
+.form label{display:grid;gap:6px;font-size:13px;color:var(--muted);font-weight:700}
+.field{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:12px;outline:none;width:100%;font-family:"JetBrains Mono",monospace;font-size:16px}
+.field:focus{border-color:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.days{display:flex;gap:6px}
+.days button{flex:1;padding:9px 0;border-radius:9px;background:var(--surface2);border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--muted)}
+.days button.sel{background:var(--accent);border-color:var(--accent);color:var(--ink)}
+.summary{background:var(--surface2);border-radius:12px;padding:12px;font-size:14px;line-height:1.6}
+.summary b{color:var(--accent)}
+/* history */
+.bars{display:flex;align-items:flex-end;gap:5px;height:150px;position:relative;margin-top:8px}
+.bars .goal{position:absolute;left:0;right:0;border-top:1px dashed var(--muted);opacity:.5}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.bar i{display:block;width:100%;border-radius:5px 5px 2px 2px;background:var(--accent2);min-height:2px}
+.bar.met i{background:var(--accent)}
+.bar span{font-size:10px;color:var(--muted);margin-top:5px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.kpi{background:var(--surface2);border-radius:11px;padding:10px;text-align:center}
+.kpi b{display:block;font-family:"JetBrains Mono",monospace;font-size:18px}
+.kpi span{font-size:11px;color:var(--muted)}
+/* modal & toast */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.modal.open{display:flex}
+.sheet{background:var(--surface);border-top:1px solid var(--line);border-radius:20px 20px 0 0;padding:20px 16px calc(env(safe-area-inset-bottom) + 20px);width:100%;max-width:520px}
+.sheet h3{font-size:18px;margin-bottom:12px}
+.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--line);padding:11px 16px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;z-index:60;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.warnbox{border:1px solid #5a4520;background:rgba(255,181,71,.08);color:var(--warn);border-radius:12px;padding:12px;font-size:13px;line-height:1.5;margin-bottom:12px;display:none}
+.warnbox button{margin-top:8px}
+.foot{color:var(--muted);font-size:11px;text-align:center;margin-top:16px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Hidra<span>ta</span></h1>
+  <div class="date" id="today-date"></div>
+</header>
+
+<!-- ============ ONBOARDING ============ -->
+<section id="onboard" class="view">
+  <div class="card">
+    <h2>Vamos configurar</h2>
+    <div class="form">
+      <label>Seu peso (kg)<input class="field" id="ob-weight" type="number" inputmode="decimal" min="20" max="300" step="0.1" value="60"></label>
+      <div class="two">
+        <label>Acordo às<input class="field" id="ob-wake" type="time" value="07:00"></label>
+        <label>Durmo às<input class="field" id="ob-sleep" type="time" value="23:00"></label>
+      </div>
+      <div class="summary" id="ob-summary"></div>
+      <button class="big" id="ob-go">Começar 💧</button>
+    </div>
+  </div>
+  <p class="foot">A meta usa 35 ml por kg de peso, uma referência comum para adultos saudáveis.<br>Se você tem alguma restrição de líquidos, siga a orientação do seu médico.</p>
+</section>
+
+<!-- ============ HOJE ============ -->
+<section id="v-today" class="view">
+  <div class="warnbox" id="notif-warn">
+    As notificações estão desligadas, então os lembretes não vão aparecer.
+    <br><button class="btn" id="notif-fix">Permitir notificações</button>
+  </div>
+
+  <div class="card">
+    <div class="ringwrap">
+      <div class="ring">
+        <svg width="150" height="150" viewBox="0 0 150 150">
+          <circle cx="75" cy="75" r="64" fill="none" stroke="#1d2938" stroke-width="13"/>
+          <circle id="ring-fg" cx="75" cy="75" r="64" fill="none" stroke="url(#gr)" stroke-width="13" stroke-linecap="round" stroke-dasharray="402.1" stroke-dashoffset="402.1" style="transition:stroke-dashoffset .6s"/>
+          <defs><linearGradient id="gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4cc3ff"/><stop offset="1" stop-color="#2a86e0"/></linearGradient></defs>
+        </svg>
+        <div class="c"><div class="v" id="ring-v">0</div><div class="g" id="ring-g">de 0 ml</div></div>
+      </div>
+      <div class="stat">
+        <span class="muted small">Faltam</span>
+        <b class="mono" id="st-left">0 ml</b>
+        <span class="muted small" id="st-next">—</span><br>
+        <span class="pill ok" id="st-pill">Em dia</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="big" id="drink-next">Bebi <span id="drink-next-ml">250</span> ml</button>
+  <div class="quick">
+    <button data-ml="150">150</button>
+    <button data-ml="250">250</button>
+    <button data-ml="500">500</button>
+    <button id="drink-other">Outro</button>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="row">
+      <div><b>Hoje é dia de treino</b><div class="muted small" id="train-sub">+500 ml na meta</div></div>
+      <label class="sw"><input type="checkbox" id="train-today"><i></i></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Doses de hoje</h2>
+    <div class="doses" id="dose-list"></div>
+  </div>
+
+  <div class="card">
+    <h2>Registros de hoje</h2>
+    <div class="log" id="log-list"></div>
+  </div>
+</section>
+
+<!-- ============ HISTÓRICO ============ -->
+<section id="v-hist" class="view">
+  <div class="card">
+    <h2>Últimos 14 dias</h2>
+    <div class="bars" id="bars"></div>
+    <div class="kpis">
+      <div class="kpi"><b id="k-avg">0</b><span>média ml/dia</span></div>
+      <div class="kpi"><b id="k-met">0</b><span>metas batidas</span></div>
+      <div class="kpi"><b id="k-streak">0</b><span>dias seguidos</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AJUSTES ============ -->
+<section id="v-set" class="view">
+  <div class="card">
+    <h2>Você e sua rotina</h2>
+    <div class="form">
+      <div class="two">
+        <label>Peso (kg)<input class="field" id="s-weight" type="number" inputmode="decimal" min="20" max="300" step="0.1"></label>
+        <label>ml por kg<input class="field" id="s-mlkg" type="number" inputmode="numeric" min="25" max="50" step="1"></label>
+      </div>
+      <div class="two">
+        <label>Acordo às<input class="field" id="s-wake" type="time"></label>
+        <label>Durmo às<input class="field" id="s-sleep" type="time"></label>
+      </div>
+      <label>Lembrar a cada
+        <select class="field" id="s-interval">
+          <option value="45">45 minutos</option>
+          <option value="60">1 hora</option>
+          <option value="90">1 hora e meia</option>
+          <option value="120">2 horas</option>
+        </select>
+      </label>
+      <label>Parar de lembrar antes de dormir
+        <select class="field" id="s-stop">
+          <option value="30">30 minutos antes</option>
+          <option value="60">1 hora antes</option>
+          <option value="90">1 hora e meia antes</option>
+          <option value="120">2 horas antes</option>
+        </select>
+      </label>
+      <label><span>Dias de treino (+<span id="s-extra-l">500</span> ml)</span>
+        <div class="days" id="s-days"></div>
+      </label>
+      <label>Extra no dia de treino (ml)<input class="field" id="s-extra" type="number" inputmode="numeric" min="0" max="2000" step="50"></label>
+      <div class="summary" id="s-summary"></div>
+      <button class="big" id="s-save">Salvar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Lembretes</h2>
+    <div class="row" style="margin-bottom:14px">
+      <div><b>Notificações</b><div class="muted small">Lembra nos horários das doses</div></div>
+      <label class="sw"><input type="checkbox" id="s-notif"><i></i></label>
+    </div>
+    <div class="row" style="margin-bottom:14px">
+      <div><b>Pular se já estiver em dia</b><div class="muted small">Não avisa uma dose que você já bebeu adiantado</div></div>
+      <label class="sw"><input type="checkbox" id="s-skip"><i></i></label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn ghost" id="s-test">Testar notificação</button>
+      <button class="btn ghost" id="s-exact">Horário exato</button>
+    </div>
+    <p class="muted small" id="s-notif-info" style="margin-top:10px;line-height:1.5"></p>
+  </div>
+
+  <div class="card">
+    <h2>Dados</h2>
+    <button class="btn danger" id="s-reset">Apagar tudo</button>
+  </div>
+  <p class="foot" id="ver"></p>
+</section>
+
+<nav id="nav" style="display:none"><div class="in">
+  <button class="tab active" data-v="v-today">Hoje</button>
+  <button class="tab" data-v="v-hist">Histórico</button>
+  <button class="tab" data-v="v-set">Ajustes</button>
+</div></nav>
+
+<div class="modal" id="m-other"><div class="sheet">
+  <h3>Quanto você bebeu?</h3>
+  <input class="field" id="m-ml" type="number" inputmode="numeric" min="10" max="3000" step="10" placeholder="ml" style="margin-bottom:12px">
+  <div style="display:flex;gap:8px"><button class="btn ghost" style="flex:1" id="m-cancel">Cancelar</button><button class="btn" style="flex:1" id="m-ok">Registrar</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ---------------- Plataforma ---------------- */
+const Cap = window.Capacitor || null;
+const isNative = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
+const Pl = (Cap && Cap.Plugins) || {};
+const LN = isNative ? Pl.LocalNotifications : null;
+const Prefs = isNative ? Pl.Preferences : null;
+const APP_KEY = "hidrata.v1";
+
+/* ---------------- Estado ---------------- */
+const DEFAULTS = {
+  config: null,          // {weight, mlkg, wake, sleep, interval, stop, trainDays:[1,3,5], extra, notif, skip}
+  logs: {},              // { "2026-11-24": [{t: epochMs, ml: 250}, ...] }
+  train: {},             // { "2026-11-24": true/false }  (override do dia)
+};
+let S = JSON.parse(JSON.stringify(DEFAULTS));
+
+async function load(){
+  let raw = null;
+  try{ if(Prefs){ const r = await Prefs.get({key:APP_KEY}); raw = r && r.value; } }catch(e){}
+  if(!raw){ try{ raw = localStorage.getItem(APP_KEY); }catch(e){} }
+  if(raw){ try{ S = Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), JSON.parse(raw)); }catch(e){} }
+}
+function save(){
+  const raw = JSON.stringify(S);
+  try{ localStorage.setItem(APP_KEY, raw); }catch(e){}
+  try{ if(Prefs) Prefs.set({key:APP_KEY, value:raw}); }catch(e){}
+}
+
+/* ---------------- Tempo e dia lógico ----------------
+   O "dia" começa 3h antes do horário de acordar. Assim, quem dorme depois da
+   meia-noite continua no mesmo dia até ir dormir. */
+const toMin = s => { const [h,m] = s.split(":").map(Number); return h*60+m; };
+const fmtMin = m => { m = ((m%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); };
+const pad = n => String(n).padStart(2,"0");
+const keyOf = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const r10 = n => Math.max(0, Math.round(n/10)*10);
+const fmtMl = n => n >= 1000 ? (n/1000).toFixed(n%1000===0?0:2).replace(".",",")+" L" : n+" ml";
+
+function dayStartMin(cfg){ return ((toMin(cfg.wake) - 180) % 1440 + 1440) % 1440; }
+// início (epoch) do dia lógico que contém o instante `t`
+function logicalStart(cfg, t){
+  const ds = dayStartMin(cfg);
+  const d = new Date(t - ds*60000);
+  const base = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+  return new Date(base.getTime() + ds*60000);
+}
+function logicalKey(cfg, t){ const ds = dayStartMin(cfg); return keyOf(new Date(t - ds*60000)); }
+function relMin(cfg, hhmm){ return ((toMin(hhmm) - dayStartMin(cfg)) % 1440 + 1440) % 1440; }
+
+/* ---------------- Meta e doses ---------------- */
+function isTrainDay(cfg, startDate, key){
+  if(S.train[key] !== undefined) return !!S.train[key];
+  const wd = new Date(startDate.getTime() + 180*60000).getDay(); // dia da semana na hora de acordar
+  return (cfg.trainDays||[]).includes(wd);
+}
+function goalFor(cfg, train){ return r10(cfg.weight * cfg.mlkg + (train ? (cfg.extra||0) : 0)); }
+
+// Lista de horários (minutos relativos ao início do dia lógico)
+function doseTimes(cfg){
+  const w = relMin(cfg, cfg.wake);
+  let sl = relMin(cfg, cfg.sleep);
+  if(sl <= w) sl += 1440;
+  const last = Math.max(w, sl - cfg.stop);
+  const times = [];
+  for(let t = w; t <= last; t += cfg.interval) times.push(t);
+  return times;
+}
+// Divide a meta em doses iguais (múltiplos de 10 ml); a última absorve a sobra
+function splitGoal(goal, n){
+  if(n <= 0) return [];
+  const each = r10(goal / n);
+  const arr = Array(n).fill(each);
+  arr[n-1] = Math.max(0, goal - each*(n-1));
+  return arr;
+}
+function planFor(cfg, t){
+  const start = logicalStart(cfg, t);
+  const key = logicalKey(cfg, t);
+  const train = isTrainDay(cfg, start, key);
+  const goal = goalFor(cfg, train);
+  const rel = doseTimes(cfg);
+  const amounts = splitGoal(goal, rel.length);
+  let cum = 0;
+  const doses = rel.map((m,i) => { cum += amounts[i]; return { i, at: start.getTime() + m*60000, ml: amounts[i], cum }; });
+  return { start, key, train, goal, doses };
+}
+const drunkOn = key => (S.logs[key]||[]).reduce((a,b)=>a+b.ml,0);
+
+/* ---------------- Estado do dia (doses feitas / próximas) ---------------- */
+function dayStatus(cfg, now){
+  const p = planFor(cfg, now);
+  const drunk = drunkOn(p.key);
+  const left = Math.max(0, p.goal - drunk);
+  const pending = p.doses.filter(d => drunk < d.cum);
+  // as doses que faltam são recalculadas para dividir o que falta entre elas
+  const nextAmt = pending.length ? r10(left / pending.length) || left : 0;
+  const expected = p.doses.filter(d => d.at <= now).reduce((a,d)=>Math.max(a,d.cum),0);
+  const behind = Math.max(0, expected - drunk);
+  const next = pending.find(d => d.at > now) || null;
+  return { ...p, drunk, left, pending, nextAmt, expected, behind, next };
+}
+
+/* ---------------- Notificações ---------------- */
+let notifGranted = null;
+async function checkPerm(){
+  if(!LN){ notifGranted = null; return; }
+  try{ const r = await LN.checkPermissions(); notifGranted = r.display === "granted"; }catch(e){ notifGranted = null; }
+}
+async function askPerm(){
+  if(!LN) return false;
+  try{ const r = await LN.requestPermissions(); notifGranted = r.display === "granted"; }catch(e){}
+  return notifGranted;
+}
+async function setupChannel(){
+  if(!LN) return;
+  try{
+    await LN.createChannel({ id:"agua", name:"Lembretes de água", description:"Avisos para beber água", importance:4, visibility:1, vibration:true });
+    await LN.registerActionTypes({ types:[{ id:"AGUA", actions:[
+      { id:"bebi", title:"Bebi ✓", foreground:true },
+      { id:"adiar", title:"Daqui a 15 min", foreground:true }
+    ]}]});
+  }catch(e){ console.log("canal", e); }
+}
+
+let scheduling = false, scheduleAgain = false;
+async function reschedule(){
+  if(!LN || !S.config) return;
+  if(scheduling){ scheduleAgain = true; return; }
+  scheduling = true;
+  try{
+    // cancela os lembretes de dose (ids 1..9999); o adiado (id 50000) fica
+    const pend = await LN.getPending();
+    const ids = (pend.notifications||[]).filter(n => n.id < 50000).map(n => ({id:n.id}));
+    if(ids.length) await LN.cancel({ notifications: ids });
+    if(!S.config.notif || notifGranted === false) return;
+
+    const cfg = S.config, now = Date.now(), list = [];
+    const st = dayStatus(cfg, now);
+    for(let k = 0; k < 7; k++){
+      const ref = st.start.getTime() + k*86400000 + 4*3600000; // um instante dentro do dia k
+      const p = planFor(cfg, ref);
+      const drunk = k === 0 ? st.drunk : 0;
+      if(k === 0 && drunk >= p.goal) continue;
+      const pend = p.doses.filter(d => !(cfg.skip && drunk >= d.cum));
+      pend.forEach((d, j) => {
+        if(d.at <= now + 30000) return;
+        let ml, body;
+        if(k === 0){
+          ml = st.nextAmt || d.ml;
+          body = `Beba uns ${ml} ml. Faltam ${fmtMl(st.left)} para a meta de hoje.`;
+        } else {
+          ml = d.ml;
+          body = `Beba uns ${ml} ml (dose ${d.i+1} de ${p.doses.length}).`;
+        }
+        list.push({ id: k*100 + d.i + 1, title: "💧 Hora da água", body,
+          schedule: { at: new Date(d.at), allowWhileIdle: true },
+          channelId: "agua", actionTypeId: "AGUA", extra: { ml, day: p.key }, smallIcon: "ic_stat_drop", iconColor: "#4cc3ff" });
+      });
+    }
+    if(list.length) await LN.schedule({ notifications: list });
+    console.log("agendados", list.length);
+  }catch(e){ console.log("agendar", e); }
+  finally{
+    scheduling = false;
+    if(scheduleAgain){ scheduleAgain = false; reschedule(); }
+  }
+}
+async function snooze(ml){
+  if(!LN) return;
+  try{
+    await LN.cancel({ notifications:[{id:50000}] });
+    await LN.schedule({ notifications:[{ id:50000, title:"💧 Hora da água", body:`Lembrete adiado: beba uns ${ml||200} ml.`,
+      schedule:{ at:new Date(Date.now()+15*60000), allowWhileIdle:true }, channelId:"agua", actionTypeId:"AGUA", extra:{ml:ml||200}, smallIcon:"ic_stat_drop", iconColor:"#4cc3ff" }]});
+    toast("Te lembro daqui a 15 minutos");
+  }catch(e){}
+}
+
+/* ---------------- Ações ---------------- */
+function drink(ml){
+  ml = Math.round(Number(ml));
+  if(!S.config || !(ml > 0)) return;
+  const now = Date.now(), key = logicalKey(S.config, now);
+  const before = drunkOn(key), goal = planFor(S.config, now).goal;
+  (S.logs[key] = S.logs[key] || []).push({ t: now, ml });
+  save(); render(); reschedule();
+  if(before < goal && before + ml >= goal) toast("Meta de hoje batida! 🎉");
+  else toast(`+${ml} ml registrados`);
+  if(navigator.vibrate) navigator.vibrate(30);
+}
+function undo(key, idx){
+  if(!S.logs[key]) return;
+  S.logs[key].splice(idx, 1);
+  save(); render(); reschedule();
+}
+
+/* ---------------- Render ---------------- */
+const $ = id => document.getElementById(id);
+const WD = ["D","S","T","Q","Q","S","S"];
+let toastT;
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("show"), 2200); }
+const fmtClock = t => { const d = new Date(t); return pad(d.getHours())+":"+pad(d.getMinutes()); };
+
+function render(){
+  const cfg = S.config;
+  $("today-date").textContent = new Date().toLocaleDateString("pt-BR",{weekday:"long", day:"numeric", month:"short"});
+  if(!cfg){ show("onboard"); $("nav").style.display = "none"; renderOnboard(); return; }
+  $("nav").style.display = "";
+  if($("onboard").classList.contains("active")) show("v-today");
+  renderToday(); renderHist();
+}
+function show(id){
+  document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === id));
+  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.v === id));
+  if(id === "v-set") fillSettings();
+  window.scrollTo(0,0);
+}
+
+function renderToday(){
+  const cfg = S.config, now = Date.now();
+  const st = dayStatus(cfg, now);
+  const pct = st.goal ? Math.min(1, st.drunk / st.goal) : 0;
+  $("ring-fg").style.strokeDashoffset = (402.1 * (1 - pct)).toFixed(1);
+  $("ring-v").textContent = fmtMl(st.drunk);
+  $("ring-g").textContent = "de " + fmtMl(st.goal) + " · " + Math.round(pct*100) + "%";
+  $("st-left").textContent = fmtMl(st.left);
+  const pill = $("st-pill");
+  if(st.left === 0){ pill.className = "pill done"; pill.textContent = "Meta batida 🎉"; }
+  else if(st.behind >= 100){ pill.className = "pill late"; pill.textContent = "Atrasado " + fmtMl(r10(st.behind)); }
+  else { pill.className = "pill ok"; pill.textContent = "Em dia"; }
+  $("st-next").textContent = st.left === 0 ? "Tudo certo por hoje" :
+    st.next ? "Próxima dose às " + fmtClock(st.next.at) : "Sem mais lembretes hoje";
+  const nextMl = st.left === 0 ? 250 : Math.max(50, Math.min(st.left, st.nextAmt || st.left));
+  $("drink-next-ml").textContent = nextMl;
+  $("drink-next").dataset.ml = nextMl;
+
+  $("train-today").checked = st.train;
+  $("train-sub").textContent = `+${cfg.extra||0} ml na meta`;
+
+  // doses
+  const curIdx = st.pending.length ? st.pending[0].i : -1;
+  $("dose-list").innerHTML = st.doses.map(d => {
+    const done = st.drunk >= d.cum;
+    let cls = "", s = "";
+    if(done){ cls = "done"; s = "✓ feito"; }
+    else if(d.at <= now && d.i === curIdx){ cls = d.at < now - cfg.interval*60000 ? "late" : "now"; s = cls === "now" ? "agora" : "atrasado"; }
+    else if(d.at <= now){ cls = "late"; s = "atrasado"; }
+    else { s = d === st.next ? "próxima" : ""; if(d === st.next) cls = "now"; }
+    const ml = done ? d.ml : (st.nextAmt || d.ml);
+    return `<div class="dose ${cls}"><span class="t">${fmtClock(d.at)}</span><span class="a">${ml} ml</span><span class="s">${s}</span></div>`;
+  }).join("") || `<p class="muted small">Sem doses no intervalo configurado.</p>`;
+
+  // registros
+  const logs = S.logs[st.key] || [];
+  $("log-list").innerHTML = logs.length ? logs.map((l,i)=>`<span class="chip">${fmtClock(l.t)} · ${l.ml} ml <button data-undo="${i}" aria-label="Desfazer">×</button></span>`).reverse().join("")
+    : `<p class="muted small">Nada registrado ainda hoje.</p>`;
+  $("log-list").querySelectorAll("[data-undo]").forEach(b => b.onclick = () => undo(st.key, Number(b.dataset.undo)));
+
+  $("notif-warn").style.display = (LN && cfg.notif && notifGranted === false) ? "block" : "none";
+}
+
+function renderHist(){
+  const cfg = S.config, now = Date.now();
+  const start = logicalStart(cfg, now).getTime();
+  const days = [];
+  for(let k = 13; k >= 0; k--){
+    const ref = start - k*86400000 + 4*3600000;
+    const p = planFor(cfg, ref);
+    days.push({ key: p.key, goal: p.goal, drunk: drunkOn(p.key), wd: new Date(ref).getDay() });
+  }
+  const max = Math.max(...days.map(d => Math.max(d.goal, d.drunk)), 1) * 1.08;
+  $("bars").innerHTML = `<div class="goal" style="bottom:${(days[13].goal/max*100).toFixed(1)}%"></div>` +
+    days.map(d => `<div class="bar ${d.drunk>=d.goal?'met':''}"><i style="height:${(d.drunk/max*100).toFixed(1)}%"></i><span>${WD[d.wd]}</span></div>`).join("");
+  const past = days.slice(0,13).filter(d => d.drunk > 0);
+  const withToday = days.filter(d => d.drunk > 0);
+  $("k-avg").textContent = withToday.length ? r10(withToday.reduce((a,d)=>a+d.drunk,0)/withToday.length) : 0;
+  $("k-met").textContent = days.filter(d => d.drunk >= d.goal).length + "/14";
+  let streak = 0;
+  for(let k = 13; k >= 0; k--){
+    const d = days[k];
+    if(d.drunk >= d.goal) streak++;
+    else if(k === 13) continue; // hoje ainda está em andamento
+    else break;
+  }
+  $("k-streak").textContent = streak;
+}
+
+/* ---------------- Onboarding ---------------- */
+function obCfg(){
+  return Object.assign(defaultCfg(), {
+    weight: Number($("ob-weight").value) || 60, wake: $("ob-wake").value || "07:00", sleep: $("ob-sleep").value || "23:00" });
+}
+function defaultCfg(){ return { weight:60, mlkg:35, wake:"07:00", sleep:"23:00", interval:60, stop:60, trainDays:[1,3,5], extra:500, notif:true, skip:true }; }
+function summaryHtml(cfg){
+  const goal = goalFor(cfg, false), n = doseTimes(cfg).length, amts = splitGoal(goal, n);
+  const tr = cfg.extra ? ` Em dia de treino: <b>${fmtMl(goalFor(cfg,true))}</b>.` : "";
+  const first = fmtMin(toMin(cfg.wake)), lastRel = doseTimes(cfg).slice(-1)[0];
+  const last = lastRel !== undefined ? fmtMin(lastRel + dayStartMin(cfg)) : first;
+  return `Meta diária: <b>${fmtMl(goal)}</b> (${cfg.weight} kg × ${cfg.mlkg} ml).${tr}<br>` +
+    `<b>${n} doses</b> de ~<b>${amts[0]||0} ml</b>, a cada ${cfg.interval} min, das ${first} às ${last}.`;
+}
+function renderOnboard(){ $("ob-summary").innerHTML = summaryHtml(obCfg()); }
+["ob-weight","ob-wake","ob-sleep"].forEach(id => $(id).addEventListener("input", renderOnboard));
+$("ob-go").onclick = async () => {
+  const cfg = obCfg();
+  if(!(cfg.weight >= 20 && cfg.weight <= 300)) return toast("Confira o peso");
+  if(cfg.wake === cfg.sleep) return toast("Acordar e dormir não podem ser no mesmo horário");
+  S.config = cfg; save();
+  await askPerm();
+  render(); reschedule();
+  toast("Pronto! Primeira dose agora 💧");
+};
+
+/* ---------------- Ajustes ---------------- */
+let draftDays = [];
+function fillSettings(){
+  const c = S.config; if(!c) return;
+  $("s-weight").value = c.weight; $("s-mlkg").value = c.mlkg; $("s-wake").value = c.wake; $("s-sleep").value = c.sleep;
+  $("s-interval").value = String(c.interval); $("s-stop").value = String(c.stop); $("s-extra").value = c.extra;
+  $("s-notif").checked = !!c.notif; $("s-skip").checked = !!c.skip;
+  draftDays = (c.trainDays||[]).slice();
+  renderDays(); renderSetSummary();
+  const info = !LN ? "Os lembretes funcionam no app instalado no celular." :
+    notifGranted === false ? "O Android está bloqueando as notificações do Hidrata. Toque em Testar para pedir permissão." :
+    "Se os avisos atrasarem alguns minutos, toque em Horário exato e permita alarmes e lembretes. Também ajuda tirar o Hidrata da economia de bateria.";
+  $("s-notif-info").textContent = info;
+  $("ver").textContent = "Hidrata v" + (window.HIDRATA_BUILD || "dev");
+}
+function renderDays(){
+  $("s-days").innerHTML = WD.map((d,i)=>`<button type="button" data-d="${i}" class="${draftDays.includes(i)?'sel':''}">${d}</button>`).join("");
+  $("s-days").querySelectorAll("button").forEach(b => b.onclick = () => {
+    const d = Number(b.dataset.d);
+    draftDays = draftDays.includes(d) ? draftDays.filter(x=>x!==d) : draftDays.concat(d).sort();
+    renderDays(); renderSetSummary();
+  });
+}
+function setCfg(){
+  return Object.assign({}, S.config, {
+    weight: Number($("s-weight").value), mlkg: Number($("s-mlkg").value) || 35,
+    wake: $("s-wake").value, sleep: $("s-sleep").value,
+    interval: Number($("s-interval").value), stop: Number($("s-stop").value),
+    extra: Math.max(0, Number($("s-extra").value) || 0), trainDays: draftDays.slice(),
+    notif: $("s-notif").checked, skip: $("s-skip").checked });
+}
+function renderSetSummary(){
+  const c = setCfg(); $("s-extra-l").textContent = c.extra;
+  $("s-summary").innerHTML = (c.weight >= 20 && c.wake && c.sleep) ? summaryHtml(c) : "Preencha peso e horários.";
+}
+["s-weight","s-mlkg","s-wake","s-sleep","s-interval","s-stop","s-extra"].forEach(id => $(id).addEventListener("input", renderSetSummary));
+$("s-save").onclick = async () => {
+  const c = setCfg();
+  if(!(c.weight >= 20 && c.weight <= 300)) return toast("Confira o peso");
+  if(!c.wake || !c.sleep || c.wake === c.sleep) return toast("Confira os horários");
+  S.config = c; save();
+  if(c.notif && notifGranted !== true) await askPerm();
+  render(); reschedule(); toast("Salvo");
+};
+$("s-notif").onchange = async e => {
+  S.config.notif = e.target.checked; save();
+  if(S.config.notif && notifGranted !== true) await askPerm();
+  reschedule(); fillSettings(); render();
+};
+$("s-skip").onchange = e => { S.config.skip = e.target.checked; save(); reschedule(); };
+$("s-test").onclick = async () => {
+  if(!LN) return toast("Funciona no app instalado");
+  if(notifGranted !== true && !(await askPerm())) return toast("Permissão de notificação negada");
+  await LN.schedule({ notifications:[{ id:50001, title:"💧 Hora da água", body:"Teste: é assim que o lembrete vai aparecer.",
+    schedule:{ at:new Date(Date.now()+5000), allowWhileIdle:true }, channelId:"agua", actionTypeId:"AGUA", extra:{ml:200}, smallIcon:"ic_stat_drop", iconColor:"#4cc3ff" }]});
+  toast("Chega em 5 segundos");
+  fillSettings(); render();
+};
+$("s-exact").onclick = async () => {
+  if(!LN) return toast("Funciona no app instalado");
+  try{
+    const r = await LN.checkExactNotificationSetting();
+    if(r.exact_alarm === "granted") return toast("Horário exato já está ligado");
+    await LN.changeExactNotificationSetting();
+  }catch(e){ toast("Seu Android já usa horário exato"); }
+};
+$("s-reset").onclick = () => {
+  if(!confirmReset){ confirmReset = true; $("s-reset").textContent = "Toque de novo para confirmar"; setTimeout(()=>{ confirmReset=false; $("s-reset").textContent="Apagar tudo"; }, 3000); return; }
+  S = JSON.parse(JSON.stringify(DEFAULTS)); save(); reschedule().catch(()=>{});
+  if(LN) LN.getPending().then(p => p.notifications.length && LN.cancel({notifications:p.notifications.map(n=>({id:n.id}))})).catch(()=>{});
+  confirmReset = false; $("s-reset").textContent = "Apagar tudo"; render();
+};
+let confirmReset = false;
+
+/* ---------------- Hoje: eventos ---------------- */
+$("drink-next").onclick = () => drink($("drink-next").dataset.ml);
+document.querySelectorAll(".quick [data-ml]").forEach(b => b.onclick = () => drink(b.dataset.ml));
+$("drink-other").onclick = () => { $("m-other").classList.add("open"); $("m-ml").value = ""; setTimeout(()=>$("m-ml").focus(), 50); };
+$("m-cancel").onclick = () => $("m-other").classList.remove("open");
+$("m-other").onclick = e => { if(e.target.id === "m-other") $("m-other").classList.remove("open"); };
+$("m-ok").onclick = () => { const v = Number($("m-ml").value); if(v > 0 && v <= 3000){ $("m-other").classList.remove("open"); drink(v); } else toast("Digite entre 10 e 3000 ml"); };
+$("train-today").onchange = e => {
+  const key = logicalKey(S.config, Date.now());
+  S.train[key] = e.target.checked; save(); render(); reschedule();
+};
+$("notif-fix").onclick = async () => { await askPerm(); render(); reschedule(); };
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => show(b.dataset.v));
+
+/* ---------------- Início ---------------- */
+(async function init(){
+  await load();
+  await checkPerm();
+  await setupChannel();
+  render();
+  reschedule();
+  if(LN){
+    LN.addListener("localNotificationActionPerformed", ev => {
+      const ml = (ev.notification && ev.notification.extra && ev.notification.extra.ml) || 200;
+      if(ev.actionId === "bebi") drink(ml);
+      else if(ev.actionId === "adiar") snooze(ml);
+    });
+  }
+  if(Pl.App){ Pl.App.addListener("resume", async () => { await checkPerm(); render(); reschedule(); }); }
+  document.addEventListener("visibilitychange", async () => { if(!document.hidden){ await checkPerm(); render(); reschedule(); } });
+  setInterval(render, 60000);
+})();
+</script>
+</body>
+</html>
