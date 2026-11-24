@@ -249,6 +249,15 @@ nav .in{max-width:520px;margin:0 auto;display:flex;gap:6px;background:var(--surf
       <div><b>Pular se já estiver em dia</b><div class="muted small">Não avisa uma dose que você já bebeu adiantado</div></div>
       <label class="sw"><input type="checkbox" id="s-skip"><i></i></label>
     </div>
+    <label class="form" style="margin-bottom:14px"><span class="muted small" style="font-weight:700">Som do alerta</span>
+      <div style="display:flex;gap:8px">
+        <select class="field" id="s-sound" style="flex:1">
+          <option value="gota">Gota d'água</option>
+          <option value="padrao">Som padrão do celular</option>
+        </select>
+        <button class="btn ghost" id="s-listen" type="button">▶ Ouvir</button>
+      </div>
+    </label>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn ghost" id="s-test">Testar notificação</button>
       <button class="btn ghost" id="s-exact">Horário exato</button>
@@ -395,7 +404,9 @@ async function askPerm(){
 async function setupChannel(){
   if(!LN) return;
   try{
-    await LN.createChannel({ id:"agua", name:"Lembretes de água", description:"Avisos para beber água", importance:4, visibility:1, vibration:true });
+    try{ await LN.deleteChannel({ id:"agua" }); }catch(e){}   // canal da v1, sem som definido
+    await LN.createChannel({ id:"agua_gota", name:"Lembretes de água (som de gota)", description:"Avisos para beber água com som de gota", importance:5, visibility:1, vibration:true, lights:true, lightColor:"#4cc3ff", sound:"gota.wav" });
+    await LN.createChannel({ id:"agua_padrao", name:"Lembretes de água (som do celular)", description:"Avisos para beber água com o som padrão de notificação", importance:5, visibility:1, vibration:true, lights:true, lightColor:"#4cc3ff" });
     await LN.registerActionTypes({ types:[{ id:"AGUA", actions:[
       { id:"bebi", title:"Bebi ✓", foreground:true },
       { id:"adiar", title:"Daqui a 15 min", foreground:true }
@@ -403,6 +414,10 @@ async function setupChannel(){
   }catch(e){ console.log("canal", e); }
 }
 
+function soundOpts(){
+  const gota = !S.config || S.config.sound !== "padrao";
+  return gota ? { channelId:"agua_gota", sound:"gota.wav" } : { channelId:"agua_padrao" };
+}
 let scheduling = false, scheduleAgain = false;
 async function reschedule(){
   if(!LN || !S.config) return;
@@ -435,7 +450,7 @@ async function reschedule(){
         }
         list.push({ id: k*100 + d.i + 1, title: "💧 Hora da água", body,
           schedule: { at: new Date(d.at), allowWhileIdle: true },
-          channelId: "agua", actionTypeId: "AGUA", extra: { ml, day: p.key }, smallIcon: "ic_stat_drop", iconColor: "#4cc3ff" });
+          ...soundOpts(), actionTypeId: "AGUA", extra: { ml, day: p.key }, smallIcon: "ic_stat_drop", iconColor: "#4cc3ff" });
       });
     }
     if(list.length) await LN.schedule({ notifications: list });
@@ -451,7 +466,7 @@ async function snooze(ml){
   try{
     await LN.cancel({ notifications:[{id:50000}] });
     await LN.schedule({ notifications:[{ id:50000, title:"💧 Hora da água", body:`Lembrete adiado: beba uns ${ml||200} ml.`,
-      schedule:{ at:new Date(Date.now()+15*60000), allowWhileIdle:true }, channelId:"agua", actionTypeId:"AGUA", extra:{ml:ml||200}, smallIcon:"ic_stat_drop", iconColor:"#4cc3ff" }]});
+      schedule:{ at:new Date(Date.now()+15*60000), allowWhileIdle:true }, ...soundOpts(), actionTypeId:"AGUA", extra:{ml:ml||200}, smallIcon:"ic_stat_drop", iconColor:"#4cc3ff" }]});
     toast("Te lembro daqui a 15 minutos");
   }catch(e){}
 }
@@ -570,7 +585,7 @@ function obCfg(){
   return Object.assign(defaultCfg(), {
     weight: Number($("ob-weight").value) || 60, wake: $("ob-wake").value || "07:00", sleep: $("ob-sleep").value || "23:00" });
 }
-function defaultCfg(){ return { weight:60, mlkg:35, wake:"07:00", sleep:"23:00", interval:60, stop:60, trainDays:[1,3,5], extra:500, notif:true, skip:true }; }
+function defaultCfg(){ return { weight:60, mlkg:35, wake:"07:00", sleep:"23:00", interval:60, stop:60, trainDays:[1,3,5], extra:500, notif:true, skip:true, sound:"gota" }; }
 function summaryHtml(cfg){
   const goal = goalFor(cfg, false), n = doseTimes(cfg).length, amts = splitGoal(goal, n);
   const tr = cfg.extra ? ` Em dia de treino: <b>${fmtMl(goalFor(cfg,true))}</b>.` : "";
@@ -597,12 +612,13 @@ function fillSettings(){
   const c = S.config; if(!c) return;
   $("s-weight").value = c.weight; $("s-mlkg").value = c.mlkg; $("s-wake").value = c.wake; $("s-sleep").value = c.sleep;
   $("s-interval").value = String(c.interval); $("s-stop").value = String(c.stop); $("s-extra").value = c.extra;
+  $("s-sound").value = c.sound === "padrao" ? "padrao" : "gota";
   $("s-notif").checked = !!c.notif; $("s-skip").checked = !!c.skip;
   draftDays = (c.trainDays||[]).slice();
   renderDays(); renderSetSummary();
   const info = !LN ? "Os lembretes funcionam no app instalado no celular." :
     notifGranted === false ? "O Android está bloqueando as notificações do Hidrata. Toque em Testar para pedir permissão." :
-    "Se os avisos atrasarem alguns minutos, toque em Horário exato e permita alarmes e lembretes. Também ajuda tirar o Hidrata da economia de bateria.";
+    "O alerta toca com som e vibração. No modo silencioso ou Não perturbe o Android não toca som. Se os avisos atrasarem, toque em Horário exato e tire o Hidrata da economia de bateria.";
   $("s-notif-info").textContent = info;
   $("ver").textContent = "Hidrata v" + (window.HIDRATA_BUILD || "dev");
 }
@@ -640,12 +656,16 @@ $("s-notif").onchange = async e => {
   if(S.config.notif && notifGranted !== true) await askPerm();
   reschedule(); fillSettings(); render();
 };
+$("s-sound").onchange = e => { S.config.sound = e.target.value; save(); reschedule(); if(e.target.value === "gota") playDrop(); toast("Som do alerta trocado"); };
+let dropAudio = null;
+function playDrop(){ try{ dropAudio = dropAudio || new Audio("gota.wav"); dropAudio.currentTime = 0; dropAudio.play(); }catch(e){} }
+$("s-listen").onclick = () => { if($("s-sound").value === "gota") playDrop(); else toast("Vai tocar o som de notificação do seu celular"); };
 $("s-skip").onchange = e => { S.config.skip = e.target.checked; save(); reschedule(); };
 $("s-test").onclick = async () => {
   if(!LN) return toast("Funciona no app instalado");
   if(notifGranted !== true && !(await askPerm())) return toast("Permissão de notificação negada");
   await LN.schedule({ notifications:[{ id:50001, title:"💧 Hora da água", body:"Teste: é assim que o lembrete vai aparecer.",
-    schedule:{ at:new Date(Date.now()+5000), allowWhileIdle:true }, channelId:"agua", actionTypeId:"AGUA", extra:{ml:200}, smallIcon:"ic_stat_drop", iconColor:"#4cc3ff" }]});
+    schedule:{ at:new Date(Date.now()+5000), allowWhileIdle:true }, ...soundOpts(), actionTypeId:"AGUA", extra:{ml:200}, smallIcon:"ic_stat_drop", iconColor:"#4cc3ff" }]});
   toast("Chega em 5 segundos");
   fillSettings(); render();
 };
